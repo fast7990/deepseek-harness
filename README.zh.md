@@ -8,6 +8,40 @@ DeepSeek Harness（`dsh`）是由 [DeepSeek AI](https://deepseek.com) 开发的�
 
 文档：[https://deepseek-harness.github.io/deepseek-harness/](https://deepseek-harness.github.io/deepseek-harness/)
 
+## 项目概览
+
+DeepSeek Harness 把模型变成可工作的 agent：它组装系统提示词与工具 schema，流式处理每次模型请求，执行模型调用的工具，并把模型能看到的一切记入可长期保存的会话日志，供恢复、fork、transcript（文本记录）与 Web UI 读回。
+
+产品是一棵插件树，而不是一个固定程序：profile 在启动时按序组装组合包，它们装入的任意配置项都可以被替换或 patch。主要能力族包括：
+
+- **模型** —— 注册在 `ctx.llm` 上的模型适配器。
+- **工具** —— shell、文件系统、搜索、网页抓取、终端、后台任务、subagent、skill（技能）与 todo 跟踪，各自注册在 `ctx.tools` 上。
+- **执行** —— 同一套文件系统、子进程与沙箱提供方让 Bash、PTY 和 LSP 留在本机，或进入远程沙箱。
+- **会话** —— 仅追加的事件日志支撑恢复、fork、transcript 与会话搜索。
+- **入口** —— `dsh` CLI、Web GUI、TypeScript 与 Python SDK，以及仅用于自动化的 ACP 服务器。
+
+## 架构
+
+不存在需要打补丁的特权内核：模型适配器、工具注册表、会话日志和 agent loop（智能体循环）本身都是插件，因此每一个都能从配置中替换（见[架构文档](docs/architecture.zh.md)）。
+
+- **profile** 是组合包的具名组装；`web`、`headless`、`sdk`、`sdk-minimal` 和 `acp` 作为模板随发行版交付。
+- **组合包**把 Cordis 配置项与其挂载的代码放在一起，并始终可被其上每一层 patch。
+- **步骤**是一次模型请求加上它调用的工具；**轮次**包含零个或多个步骤。
+- **模型可见即可重建**：任何进入模型请求的内容都能从会话日志重建。
+- **能力 seam** 由 Service Definition、Service Provider 与 Consumer 三者构成，因此替换一个提供方即可改变整个产品。
+
+## 仓库结构
+
+| 路径 | 内容 |
+|---|---|
+| [`packages/`](packages/README.zh.md) | 按能力族分组的 npm 包 |
+| `apps/` | `dsh` CLI、Web GUI 与 Electron 桌面应用 |
+| `vendor/` | 固定版本的上游 Cordis 源码 |
+| `python/` | Python SDK 及其运行时 wheel 包 |
+| `native/` | 原生系统插件 |
+| `docs/` | 架构、子系统参考、实操手册与用户指南 |
+| `scripts/` | 门禁、生成器与发布工具 |
+
 ## 开发者预览
 
 DeepSeek Harness 处于 _开发者预览_ 阶段，正在快速迭代。**未来将出现破坏兼容性的变更。**

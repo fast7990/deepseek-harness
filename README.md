@@ -8,6 +8,40 @@ It is built on an **everything-is-a-plugin** architecture and powered by [Cordis
 
 Documentation: [https://deepseek-harness.github.io/deepseek-harness/](https://deepseek-harness.github.io/deepseek-harness/)
 
+## Overview
+
+DeepSeek Harness turns a model into a working agent: it assembles the system prompt and tool schemas, streams each model request, runs the tools the model calls, and records everything the model can observe in a durable session log that resume, fork, transcripts, and the Web UI read back.
+
+The product is a plugin tree rather than a fixed program: a profile composes ordered bundles at boot, and any configuration row they install can be replaced or patched. The capability families are:
+
+- **Models** — model adapters registered on `ctx.llm`.
+- **Tools** — shell, filesystem, search, web fetch, terminals, background jobs, subagents, skills, and todo tracking, each registered on `ctx.tools`.
+- **Execution** — one filesystem, subprocess, and sandbox provider set keeps Bash, PTY, and LSP on the local machine or inside a remote sandbox.
+- **Sessions** — an append-only event log backs resume, fork, transcripts, and session search.
+- **Entry points** — the `dsh` CLI, the Web GUI, the TypeScript and Python SDKs, and an automation-only ACP server.
+
+## Architecture
+
+There is no privileged core to patch: the model adapter, the tool registry, the session log, and the agent loop itself are plugins, so each is replaceable from configuration ([architecture](docs/architecture.md)).
+
+- A **profile** is a named composition of bundles; `web`, `headless`, `sdk`, `sdk-minimal`, and `acp` ship as templates.
+- A **bundle** packages Cordis configuration rows with the code they mount, and stays patchable by every layer above it.
+- A **step** is one model request plus the tools it calls; a **turn** is zero or more steps.
+- **Model-visible means logged**: everything that reaches a model request is reconstructable from the session log.
+- A **capability seam** joins a Service Definition, a Service Provider, and a Consumer, so replacing one provider changes the whole product.
+
+## Repository layout
+
+| Path | Contents |
+|---|---|
+| [`packages/`](packages/README.md) | The npm packages, grouped by capability family |
+| `apps/` | The `dsh` CLI, the Web GUI, and the Electron desktop application |
+| `vendor/` | Pinned upstream Cordis source |
+| `python/` | The Python SDK and its runtime wheel |
+| `native/` | The native system addon |
+| `docs/` | Architecture, subsystem references, cookbooks, and user guides |
+| `scripts/` | Gates, generators, and release tooling |
+
 ## Developer preview
 
 DeepSeek Harness is in _developer preview_ and iterating rapidly. **THERE WILL BE COMPATIBILITY-BREAKING CHANGES.**
