@@ -158,7 +158,7 @@ function runningCard(call: RunningToolCall): CallToolCard {
   return {
     callId: call.callId,
     name: call.name,
-    argsPreview: preview(call.argsRaw),
+    argsPreview: call.phase === 'preparing' ? '' : preview(call.argsRaw),
     resultPreview: '',
     status: 'running',
     durationMs: null,

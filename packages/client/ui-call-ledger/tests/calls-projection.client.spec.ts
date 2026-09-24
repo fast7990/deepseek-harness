@@ -1,7 +1,7 @@
 /** Pure call-ledger projection over engine facts. */
 
 import type {
-  AssistantMessageNode, ConversationNode, RequestView, RunningToolCall, ToolResultNode,
+  AssistantMessageNode, ConversationNode, RequestView, StartedToolCall, ToolResultNode,
 } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { describe, expect, it } from 'vitest'
 import type { CallLedgerSource, ConversationLocationFacts } from '../src/client/calls-projection.ts'
@@ -61,8 +61,9 @@ function result(callId: string, overrides: Partial<ToolResultNode> = {}): ToolRe
   }
 }
 
-function running(callId: string, overrides: Partial<RunningToolCall> = {}): RunningToolCall {
+function running(callId: string, overrides: Partial<StartedToolCall> = {}): StartedToolCall {
   return {
+    phase: 'start',
     callId, name: 'bash', argsRaw: '{}', turn: 1, step: 1, time: 2_000, subCalls: [], ...overrides,
   }
 }
