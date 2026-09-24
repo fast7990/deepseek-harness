@@ -289,6 +289,13 @@
     - id: ui-chat
       name: '@deepseek-ai/dsh-client-ui-chat'
 
+    # Call-ledger Workflow tab. The package ships, builds, and is tested, but the
+    # shipped Web surface leaves it disabled: its tab is hidden until the
+    # per-turn ledger presentation is revisited.
+    - id: ui-call-ledger
+      name: '@deepseek-ai/dsh-client-ui-call-ledger'
+      disabled: true
+
     # Official occupants for the generic sidebar and conversation brand slots.
     - id: ui-brand-official
       name: '@deepseek-ai/dsh-client-ui-brand-official'
