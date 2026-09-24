@@ -652,6 +652,27 @@ function internalModules(): InternalModules {
   }
 }
 
+/**
+ * Report a native resolver failure against the importer its caller sees.
+ *
+ * Rewriting the message and trace is best-effort: a host that exposes a read-only
+ * diagnostic property on resolver errors keeps the native text and trace, and the
+ * error code still identifies the failure.
+ * @param error - error thrown by native resolution.
+ * @param originalMessage - message before the importer rewrite.
+ * @param message - message naming the caller's importer.
+ */
+function rewriteImporterDiagnostic(error: Error, originalMessage: string, message: string): void {
+  const stack = error.stack
+  try {
+    error.message = message
+    /* v8 ignore next -- Node's resolver errors always carry a stack */
+    if (stack !== undefined) error.stack = stack.replace(originalMessage, message)
+  } catch {
+    // A read-only diagnostic must never replace the resolution failure it describes.
+  }
+}
+
 function throwWithImporter(error: unknown, routedParent: string, parent: string): never {
   const code = (error as NodeJS.ErrnoException).code
   if (error instanceof Error && (code === 'ERR_MODULE_NOT_FOUND' || code === 'ERR_PACKAGE_PATH_NOT_EXPORTED')) {
@@ -659,10 +680,7 @@ function throwWithImporter(error: unknown, routedParent: string, parent: string)
     const parentPath = fileURLToPath(parent)
     const originalMessage = error.message
     const message = originalMessage.replaceAll(routedParent, parent).replaceAll(routedPath, parentPath)
-    const stack = error.stack
-    error.message = message
-    /* v8 ignore next -- Node's resolver errors always carry a stack */
-    if (stack !== undefined) error.stack = stack.replace(originalMessage, message)
+    rewriteImporterDiagnostic(error, originalMessage, message)
   }
   throw error
 }
@@ -681,11 +699,8 @@ function throwWithoutCjsAnchor(error: unknown, anchor: string): never {
     const replacement = remaining.length === 0
       ? ''
       : `\nRequire stack:\n${remaining.map(path => `- ${path}`).join('\n')}`
-    error.message = originalMessage.replace(originalBlock, replacement)
     resolved.requireStack = remaining
-    const stack = error.stack
-    /* v8 ignore next -- Node's resolver errors always carry a stack */
-    if (stack !== undefined) error.stack = stack.replace(originalMessage, error.message)
+    rewriteImporterDiagnostic(error, originalMessage, originalMessage.replace(originalBlock, replacement))
   }
   throw error
 }

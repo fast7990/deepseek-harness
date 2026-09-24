@@ -260,7 +260,11 @@ function handleError(info: StackInfo, reason: any, getOuterStack: () => string[]
     index -= 1
   }
   lines.splice(index, Infinity, ...getOuterStack())
-  reason.stack = lines.join('\n')
+  try {
+    reason.stack = lines.join('\n')
+  } catch {
+    // A foreign error may expose a read-only stack; it is still the diagnostic to throw.
+  }
   throw reason
 }
 

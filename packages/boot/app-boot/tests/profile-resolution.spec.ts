@@ -10,7 +10,7 @@ import {
   unlinkSync,
   writeFileSync,
 } from 'node:fs'
-import { createRequire } from 'node:module'
+import { createRequire, registerHooks } from 'node:module'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -649,6 +649,34 @@ describe('runtime resolution', { concurrent: false }, () => {
       code: 'ERR_PACKAGE_PATH_NOT_EXPORTED',
       message: expect.stringContaining(fileURLToPath(parent)) as unknown as string,
     })
+  })
+
+  it('keeps the resolver diagnostic when the error stack cannot be rewritten', async () => {
+    const f = fixture()
+    file(join(f.profile.dir, 'package.json'), JSON.stringify({
+      name: 'dsh-profile-web',
+      private: true,
+      imports: { '#read-only-stack': '@deepseek-ai/dsh-core/read-only-stack' },
+    }))
+    const registration = installRuntimeInterception(await resolutionOf(f))
+    registrations.push(registration)
+    const parent = pathToFileURL(join(f.profile.dir, 'entry.mjs')).href
+    const target = '@deepseek-ai/dsh-core/read-only-stack'
+    const hooks = registerHooks({
+      resolve(request, context, nextResolve) {
+        if (request !== target) return nextResolve(request, context)
+        const failure = new Error('crafted resolution failure') as NodeJS.ErrnoException
+        failure.code = 'ERR_PACKAGE_PATH_NOT_EXPORTED'
+        Object.defineProperty(failure, 'stack', { value: String(failure.stack), writable: false })
+        throw failure
+      },
+    })
+    try {
+      expect(thrownError(() => resolveFrom('#read-only-stack', parent)))
+        .toMatchObject({ code: 'ERR_PACKAGE_PATH_NOT_EXPORTED', message: 'crafted resolution failure' })
+    } finally {
+      hooks.deregister()
+    }
   })
 
   it('leaves relative package imports targets and their diagnostics to Node', async () => {
